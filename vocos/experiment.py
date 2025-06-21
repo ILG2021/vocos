@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import numpy as np
 import pytorch_lightning as pl
@@ -6,6 +7,7 @@ import torch
 import torchaudio
 import transformers
 
+from vocos import Vocos
 from vocos.discriminators import MultiPeriodDiscriminator, MultiResolutionDiscriminator
 from vocos.feature_extractors import FeatureExtractor
 from vocos.heads import FourierHead
@@ -18,20 +20,21 @@ from vocos.modules import safe_log
 class VocosExp(pl.LightningModule):
     # noinspection PyUnusedLocal
     def __init__(
-        self,
-        feature_extractor: FeatureExtractor,
-        backbone: Backbone,
-        head: FourierHead,
-        sample_rate: int,
-        initial_learning_rate: float,
-        num_warmup_steps: int = 0,
-        mel_loss_coeff: float = 45,
-        mrd_loss_coeff: float = 1.0,
-        pretrain_mel_steps: int = 0,
-        decay_mel_coeff: bool = False,
-        evaluate_utmos: bool = False,
-        evaluate_pesq: bool = False,
-        evaluate_periodicty: bool = False,
+            self,
+            feature_extractor: FeatureExtractor,
+            backbone: Backbone,
+            head: FourierHead,
+            sample_rate: int,
+            initial_learning_rate: float,
+            num_warmup_steps: int = 0,
+            mel_loss_coeff: float = 45,
+            mrd_loss_coeff: float = 1.0,
+            pretrain_mel_steps: int = 0,
+            decay_mel_coeff: bool = False,
+            evaluate_utmos: bool = False,
+            evaluate_pesq: bool = False,
+            evaluate_periodicty: bool = False,
+            pretrained_hf_model_id: Optional[str] = None,  # <--- 关键修改：添加新参数
     ):
         """
         Args:
@@ -55,6 +58,18 @@ class VocosExp(pl.LightningModule):
         self.feature_extractor = feature_extractor
         self.backbone = backbone
         self.head = head
+
+        if pretrained_hf_model_id:
+            print(f"Loading pretrained generator weights from Hugging Face: {pretrained_hf_model_id}")
+            # Vocos.from_pretrained() 会返回一个包含预训练的 feature_extractor, backbone, head 的 Vocos 对象
+            pretrained_generator = Vocos.from_pretrained(pretrained_hf_model_id)
+
+            # 将预训练的权重加载到我们当前的模块中
+            self.feature_extractor.load_state_dict(pretrained_generator.feature_extractor.state_dict())
+            self.backbone.load_state_dict(pretrained_generator.backbone.state_dict())
+            self.head.load_state_dict(pretrained_generator.head.state_dict())
+
+            print("Successfully loaded pretrained generator weights.")
 
         self.multiperioddisc = MultiPeriodDiscriminator()
         self.multiresddisc = MultiResolutionDiscriminator()
@@ -108,8 +123,8 @@ class VocosExp(pl.LightningModule):
             with torch.no_grad():
                 audio_hat = self(audio_input, **kwargs)
 
-            real_score_mp, gen_score_mp, _, _ = self.multiperioddisc(y=audio_input, y_hat=audio_hat, **kwargs,)
-            real_score_mrd, gen_score_mrd, _, _ = self.multiresddisc(y=audio_input, y_hat=audio_hat, **kwargs,)
+            real_score_mp, gen_score_mp, _, _ = self.multiperioddisc(y=audio_input, y_hat=audio_hat, **kwargs, )
+            real_score_mrd, gen_score_mrd, _, _ = self.multiresddisc(y=audio_input, y_hat=audio_hat, **kwargs, )
             loss_mp, loss_mp_real, _ = self.disc_loss(
                 disc_real_outputs=real_score_mp, disc_generated_outputs=gen_score_mp
             )
@@ -151,11 +166,11 @@ class VocosExp(pl.LightningModule):
 
             mel_loss = self.melspec_loss(audio_hat, audio_input)
             loss = (
-                loss_gen_mp
-                + self.hparams.mrd_loss_coeff * loss_gen_mrd
-                + loss_fm_mp
-                + self.hparams.mrd_loss_coeff * loss_fm_mrd
-                + self.mel_loss_coeff * mel_loss
+                    loss_gen_mp
+                    + self.hparams.mrd_loss_coeff * loss_gen_mrd
+                    + loss_fm_mp
+                    + self.hparams.mrd_loss_coeff * loss_fm_mrd
+                    + self.mel_loss_coeff * mel_loss
             )
 
             self.log("generator/total_loss", loss, prog_bar=True)
@@ -314,20 +329,20 @@ class VocosEncodecExp(VocosExp):
     """
 
     def __init__(
-        self,
-        feature_extractor: FeatureExtractor,
-        backbone: Backbone,
-        head: FourierHead,
-        sample_rate: int,
-        initial_learning_rate: float,
-        num_warmup_steps: int,
-        mel_loss_coeff: float = 45,
-        mrd_loss_coeff: float = 1.0,
-        pretrain_mel_steps: int = 0,
-        decay_mel_coeff: bool = False,
-        evaluate_utmos: bool = False,
-        evaluate_pesq: bool = False,
-        evaluate_periodicty: bool = False,
+            self,
+            feature_extractor: FeatureExtractor,
+            backbone: Backbone,
+            head: FourierHead,
+            sample_rate: int,
+            initial_learning_rate: float,
+            num_warmup_steps: int,
+            mel_loss_coeff: float = 45,
+            mrd_loss_coeff: float = 1.0,
+            pretrain_mel_steps: int = 0,
+            decay_mel_coeff: bool = False,
+            evaluate_utmos: bool = False,
+            evaluate_pesq: bool = False,
+            evaluate_periodicty: bool = False,
     ):
         super().__init__(
             feature_extractor,
@@ -349,7 +364,8 @@ class VocosEncodecExp(VocosExp):
         self.multiresddisc = MultiResolutionDiscriminator(num_embeddings=len(self.feature_extractor.bandwidths))
 
     def training_step(self, *args):
-        bandwidth_id = torch.randint(low=0, high=len(self.feature_extractor.bandwidths), size=(1,), device=self.device,)
+        bandwidth_id = torch.randint(low=0, high=len(self.feature_extractor.bandwidths), size=(1,),
+                                     device=self.device, )
         output = super().training_step(*args, bandwidth_id=bandwidth_id)
         return output
 
