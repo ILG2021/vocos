@@ -87,7 +87,7 @@ class VocosDataset(Dataset):
 
     def __getitem__(self, index: int) -> torch.Tensor:
         audio_path = self.filelist[index]
-        print(audio_path)
+
         y, sr = torchaudio.load(audio_path)
         if y.size(0) > 1:
             # mix to mono
