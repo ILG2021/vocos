@@ -10,6 +10,12 @@ coefficients, facilitating rapid audio reconstruction through inverse Fourier tr
 
 ## Installation
 
+pytorch:
+
+```bash
+pip install torch==1.13.1+cu117 torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+```
+
 To use Vocos only in inference mode, install it using:
 
 ```bash

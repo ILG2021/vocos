@@ -1,7 +1,10 @@
-pytorch_lightning==1.8.6
+pytorch_lightning
 jsonargparse[signatures]
-transformers
+transformers==4.36.0
 matplotlib
 torchcrepe
 pesq
-fairseq
+fairseq==0.12.2
+encodec
+tensorboard
+numpy==1.26.4
