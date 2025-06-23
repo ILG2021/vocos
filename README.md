@@ -15,17 +15,16 @@ pytorch:
 ```bash
 pip install torch==1.13.1+cu117 torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 ```
-
-To use Vocos only in inference mode, install it using:
+pip 24.0:
 
 ```bash
-pip install vocos
+pip install pip==24.0
 ```
 
 If you wish to train the model, install it with additional dependencies:
 
 ```bash
-pip install vocos[train]
+pip install -r requirements.txt
 ```
 
 ## Usage
