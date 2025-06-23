@@ -7,4 +7,5 @@ pesq
 encodec
 tensorboard
 numpy==1.26.4
-fairseq==0.12.2 --no-deps
+fairseq==0.12.2
+pandas
