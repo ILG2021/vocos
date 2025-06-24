@@ -110,6 +110,16 @@ python train.py -c configs/vocos.yaml
 Refer to [Pytorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/) for details about customizing the
 training pipeline.
 
+## Finetune
+```bash
+ python .\train.py -c .\configs\vocos-ft.yaml
+ ```
+
+## Finetune resume
+```bash
+ python .\train.py -c .\configs\vocos-ft.yaml --trainer.resume_from_checkpoint .\logs\lightning_logs\version_2\checkpoints\last.ckpt --model.init_args.pretrained_hf_model_id=null
+ ```
+
 ## Citation
 
 If this code contributes to your research, please cite our work:
