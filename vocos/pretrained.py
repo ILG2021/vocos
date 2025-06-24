@@ -74,7 +74,7 @@ class Vocos(nn.Module):
                 for key, value in model.feature_extractor.encodec.state_dict().items()
             }
             state_dict.update(encodec_parameters)
-        model.load_state_dict(state_dict)
+        model.load_state_dict(state_dict, strict=False)
         model.eval()
         return model
 
