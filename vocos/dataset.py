@@ -40,7 +40,7 @@ class VocosDataModule(LightningDataModule):
 
 class VocosDataset(Dataset):
     def __init__(self, cfg: DataConfig, train: bool):
-        with open(cfg.filelist_path) as f:
+        with open(cfg.filelist_path, 'r', encoding='utf-8') as f:
             self.filelist = f.read().splitlines()
         self.sampling_rate = cfg.sampling_rate
         self.num_samples = cfg.num_samples
@@ -70,5 +70,4 @@ class VocosDataset(Dataset):
         else:
             # During validation, take always the first segment for determinism
             y = y[:, : self.num_samples]
-
         return y[0]

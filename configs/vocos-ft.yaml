@@ -30,9 +30,9 @@ model:
     pretrain_mel_steps: 0  # 0 means GAN objective from the first iteration
 
     # automatic evaluation
-    evaluate_utmos: true
-    evaluate_pesq: true
-    evaluate_periodicty: true
+    evaluate_utmos: false
+    evaluate_pesq: false
+    evaluate_periodicty: false
 
     feature_extractor:
       class_path: vocos.feature_extractors.MelSpectrogramFeatures
