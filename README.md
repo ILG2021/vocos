@@ -10,24 +10,39 @@ coefficients, facilitating rapid audio reconstruction through inverse Fourier tr
 
 ## Installation
 
+pip<24.1:
+
+```bash
+pip install pip<24.1
+```
+
 pytorch:
 
 ```bash
-pip install torch==1.13.1+cu117 torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
-```
-pip 24.0:
-
-```bash
-pip install pip==24.0
+pip install torch torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 ```
 
 If you wish to train the model, install it with additional dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install vocos[train]
 ```
 
+For only inference:
+```bash
+pip install vocos
+```
+
+## Run torch_load_crash.py and fix error by manual
+
+torch.load(weight_only=False)
+
 ## Usage
+
+### Reconstruct audio from file
+```bash
+python infer.py
+```
 
 ### Reconstruct audio from mel-spectrogram
 
