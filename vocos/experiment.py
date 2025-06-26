@@ -34,7 +34,8 @@ class VocosExp(pl.LightningModule):
             evaluate_utmos: bool = False,
             evaluate_pesq: bool = False,
             evaluate_periodicty: bool = False,
-            pretrained_hf_model_id: Optional[str] = None,  # <--- 关键修改：添加新参数
+            pretrained_hf_model_id: Optional[str] = None,
+            train_with_mel=False
     ):
         """
         Args:
@@ -81,6 +82,7 @@ class VocosExp(pl.LightningModule):
 
         self.train_discriminator = False
         self.base_mel_coeff = self.mel_loss_coeff = mel_loss_coeff
+        self.train_with_mel = train_with_mel
 
     def configure_optimizers(self):
         disc_params = [
@@ -109,19 +111,28 @@ class VocosExp(pl.LightningModule):
             [{"scheduler": scheduler_disc, "interval": "step"}, {"scheduler": scheduler_gen, "interval": "step"}],
         )
 
-    def forward(self, audio_input, **kwargs):
-        features = self.feature_extractor(audio_input, **kwargs)
+    def forward(self, x, **kwargs):
+        if self.train_with_mel:
+            features = x
+        else:
+            features = self.feature_extractor(x, **kwargs)
         x = self.backbone(features, **kwargs)
         audio_output = self.head(x)
         return audio_output
 
     def training_step(self, batch, batch_idx, optimizer_idx, **kwargs):
-        audio_input = batch
+        if self.train_with_mel:
+            audio_input, mel_input = batch
+        else:
+            audio_input = batch
 
         # train discriminator
         if optimizer_idx == 0 and self.train_discriminator:
             with torch.no_grad():
-                audio_hat = self(audio_input, **kwargs)
+                if self.train_with_mel:
+                    audio_hat = self(mel_input, **kwargs)
+                else:
+                    audio_hat = self(audio_input, **kwargs)
 
             real_score_mp, gen_score_mp, _, _ = self.multiperioddisc(y=audio_input, y_hat=audio_hat, **kwargs, )
             real_score_mrd, gen_score_mrd, _, _ = self.multiresddisc(y=audio_input, y_hat=audio_hat, **kwargs, )
@@ -142,7 +153,10 @@ class VocosExp(pl.LightningModule):
 
         # train generator
         if optimizer_idx == 1:
-            audio_hat = self(audio_input, **kwargs)
+            if self.train_with_mel:
+                audio_hat = self(mel_input, **kwargs)
+            else:
+                audio_hat = self(audio_input, **kwargs)
             if self.train_discriminator:
                 _, gen_score_mp, fmap_rs_mp, fmap_gs_mp = self.multiperioddisc(
                     y=audio_input, y_hat=audio_hat, **kwargs,
@@ -174,6 +188,7 @@ class VocosExp(pl.LightningModule):
             )
 
             self.log("generator/total_loss", loss, prog_bar=True)
+            self.log("updates", self.global_step, prog_bar=True)
             self.log("mel_loss_coeff", self.mel_loss_coeff)
             self.log("generator/mel_loss", mel_loss)
 
@@ -210,8 +225,12 @@ class VocosExp(pl.LightningModule):
                 self.utmos_model = UTMOSScore(device=self.device)
 
     def validation_step(self, batch, batch_idx, **kwargs):
-        audio_input = batch
-        audio_hat = self(audio_input, **kwargs)
+        if self.train_with_mel:
+            audio_input = batch
+            audio_hat = self(audio_input, **kwargs)
+        else:
+            audio_input, mel_input = batch
+            audio_hat = self(mel_input, **kwargs)
 
         audio_16_khz = torchaudio.functional.resample(audio_input, orig_freq=self.hparams.sample_rate, new_freq=16000)
         audio_hat_16khz = torchaudio.functional.resample(audio_hat, orig_freq=self.hparams.sample_rate, new_freq=16000)
@@ -256,13 +275,14 @@ class VocosExp(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         if self.global_rank == 0:
-            *_, audio_in, audio_pred = outputs[0].values()
-            self.logger.experiment.add_audio(
-                "val_in", audio_in.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
-            )
-            self.logger.experiment.add_audio(
-                "val_pred", audio_pred.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
-            )
+            for i in range(min(len(outputs),5)):
+                *_, audio_in, audio_pred = outputs[i].values()
+                self.logger.experiment.add_audio(
+                    f"val_in{i}" , audio_in.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
+                )
+                self.logger.experiment.add_audio(
+                    f"val_pred{i}", audio_pred.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
+                )
             mel_target = safe_log(self.melspec_loss.mel_spec(audio_in))
             mel_hat = safe_log(self.melspec_loss.mel_spec(audio_pred))
             self.logger.experiment.add_image(

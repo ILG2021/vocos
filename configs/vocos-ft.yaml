@@ -4,6 +4,7 @@ seed_everything: 4444
 data:
   class_path: vocos.dataset.VocosDataModule
   init_args:
+    train_with_mel: false   # Use mel as train data
     train_params:
       filelist_path: dataset_raw/train
       sampling_rate: 24000
