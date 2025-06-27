@@ -25,6 +25,7 @@ class VocosDataModule(LightningDataModule):
         super().__init__()
         self.train_config = train_params
         self.val_config = val_params
+        self.train_with_mel = train_with_mel
 
     def _get_dataloder(self, cfg: DataConfig, train: bool, train_with_mel):
         dataset = VocosDataset(cfg, train, train_with_mel)
@@ -34,10 +35,10 @@ class VocosDataModule(LightningDataModule):
         return dataloader
 
     def train_dataloader(self) -> DataLoader:
-        return self._get_dataloder(self.train_config, train=True)
+        return self._get_dataloder(self.train_config, True, self.train_with_mel)
 
     def val_dataloader(self) -> DataLoader:
-        return self._get_dataloder(self.val_config, train=False)
+        return self._get_dataloder(self.val_config, False, self.train_with_mel)
 
 
 class VocosDataset(Dataset):
