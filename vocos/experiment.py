@@ -147,6 +147,7 @@ class VocosExp(pl.LightningModule):
             loss = loss_mp + self.hparams.mrd_loss_coeff * loss_mrd
 
             self.log("discriminator/total", loss, prog_bar=True)
+            self.log("updates", self.global_step, on_step=True, prog_bar=True)
             self.log("discriminator/multi_period_loss", loss_mp)
             self.log("discriminator/multi_res_loss", loss_mrd)
             return loss
@@ -188,7 +189,7 @@ class VocosExp(pl.LightningModule):
             )
 
             self.log("generator/total_loss", loss, prog_bar=True)
-            self.log("updates", self.global_step, prog_bar=True)
+            self.log("updates", self.global_step, on_step=True, prog_bar=True)
             self.log("mel_loss_coeff", self.mel_loss_coeff)
             self.log("generator/mel_loss", mel_loss)
 
@@ -275,10 +276,10 @@ class VocosExp(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         if self.global_rank == 0:
-            for i in range(min(len(outputs),5)):
+            for i in range(min(len(outputs), 5)):
                 *_, audio_in, audio_pred = outputs[i].values()
                 self.logger.experiment.add_audio(
-                    f"val_in{i}" , audio_in.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
+                    f"val_in{i}", audio_in.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
                 )
                 self.logger.experiment.add_audio(
                     f"val_pred{i}", audio_pred.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
