@@ -147,7 +147,7 @@ class VocosExp(pl.LightningModule):
             loss = loss_mp + self.hparams.mrd_loss_coeff * loss_mrd
 
             self.log("discriminator/total", loss, prog_bar=True)
-            self.log("updates", int(self.global_step), on_step=True, prog_bar=True, logger=True)
+            self.log("updates", int(self.global_step), on_step=True, prog_bar=True, logger=False)
             self.log("discriminator/multi_period_loss", loss_mp)
             self.log("discriminator/multi_res_loss", loss_mrd)
             return loss
@@ -189,7 +189,7 @@ class VocosExp(pl.LightningModule):
             )
 
             self.log("generator/total_loss", loss, prog_bar=True)
-            self.log("updates", int(self.global_step), on_step=True, prog_bar=True, logger=True)
+            self.log("updates", int(self.global_step), on_step=True, prog_bar=True, logger=False)
             self.log("mel_loss_coeff", self.mel_loss_coeff)
             self.log("generator/mel_loss", mel_loss)
 
