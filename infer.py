@@ -73,7 +73,7 @@ class MelSpec(nn.Module):
 
         return mel
 
-wavform, sr = torchaudio.load("dataset_raw/ref.wav")
+wavform, sr = torchaudio.load("ref.wav")
 if sr != 24000:
     resampler = torchaudio.transforms.Resample(sr, 24000)
     wavform = resampler(wavform)
